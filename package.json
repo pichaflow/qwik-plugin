@@ -1,0 +1,22 @@
+{
+  "name": "@pichaflow/qwik",
+  "version": "1.0.0",
+  "description": "PichaFlow SDK for Qwik - Edge-native media transformations.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pichaflow/qwik-plugin.git"
+  },
+  "peerDependencies": {
+    "@builder.io/qwik": ">=1"
+  },
+  "dependencies": {
+    "@pichaflow/sdk": "workspace:*"
+  }
+}
