@@ -4,6 +4,7 @@ import { PichaFlowClient, type UploadResponse } from '@pichaflow/sdk';
 interface PichaUploadProps {
   apiKey: string;
   baseUrl?: string;
+  engineUrl?: string;
   useSecure?: boolean;
   tags?: string[];
   onSuccess$?: (response: UploadResponse) => void;
@@ -23,7 +24,8 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
 
     const client = new PichaFlowClient({ 
       apiKey: props.apiKey, 
-      baseUrl: props.baseUrl 
+      baseUrl: props.baseUrl,
+      engineUrl: props.engineUrl
     });
 
     try {
