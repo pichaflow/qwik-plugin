@@ -4,6 +4,7 @@ import { PichaFlowClient, type UploadResponse } from '@pichaflow/sdk';
 interface PichaUploadProps {
   apiKey: string;
   baseUrl?: string;
+  useSecure?: boolean;
   tags?: string[];
   onSuccess$?: (response: UploadResponse) => void;
   onError$?: (error: any) => void;
@@ -26,12 +27,17 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
     });
 
     try {
-      const response = await client.upload(file, {
+      const options = {
         tags: props.tags,
-        onProgress: (p) => {
+        onProgress: (p: number) => {
           progress.value = p;
         }
-      });
+      };
+      
+      const response = props.useSecure 
+        ? await client.secureUpload(file, options)
+        : await client.upload(file, options);
+        
       props.onSuccess$?.(response);
     } catch (err) {
       props.onError$?.(err);
