@@ -1,10 +1,11 @@
 import { component$, useSignal, useStore, $, useStylesScoped$ } from '@builder.io/qwik';
 import { PichaFlowClient, type UploadResponse, optimizeImageForUpload } from '@pichaflow/sdk';
 
-export interface PichaUploadProps {
+export interface PichaFlowUploadProps {
   apiKey: string;
   baseUrl?: string;
-  engineUrl?: string;
+  uploadUrl?: string;
+  fetchUrl?: string;
   tenantId?: string;
   useSecure?: boolean;
   tags?: string[];
@@ -24,7 +25,7 @@ type UploadTask = {
   response?: UploadResponse;
 };
 
-export const PichaUpload = component$((props: PichaUploadProps) => {
+export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
   const isDragging = useSignal(false);
   const tasksStore = useStore<{ tasks: UploadTask[] }>({ tasks: [] }, { deep: true });
   const inputRef = useSignal<HTMLInputElement>();
@@ -121,10 +122,11 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
 
     tasksStore.tasks.push(...previewTasks);
 
-    const client = new PichaFlowClient({ 
-      apiKey: props.apiKey, 
+    const client = new PichaFlowClient({
+      apiKey: props.apiKey,
       baseUrl: props.baseUrl,
-      engineUrl: props.engineUrl,
+      uploadUrl: props.uploadUrl,
+      fetchUrl: props.fetchUrl,
       tenantId: props.tenantId
     });
 
@@ -158,11 +160,11 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
             props.onProgress$?.(p);
           }
         };
-        
-        const response = props.useSecure 
+
+        const response = props.useSecure
           ? await client.secureUpload(rawTask.file, options)
           : await client.upload(rawTask.file, options);
-          
+
         updateTask({ status: 'success', progress: 100, response });
         successfulResponses.push(response);
         props.onSuccess$?.(response);
@@ -181,7 +183,7 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
   });
 
   return (
-    <div 
+    <div
       class={`picha-upload-zone ${isDragging.value ? 'is-dragging' : ''} ${props.class || ''}`}
       preventdefault:dragover
       preventdefault:dragleave
@@ -200,8 +202,8 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
           <p class="picha-upload-text">
             Drag & drop or <label class="picha-upload-link">
               browse
-              <input 
-                type="file" 
+              <input
+                type="file"
                 accept="image/*"
                 multiple
                 ref={inputRef}
@@ -210,7 +212,7 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
                   if (files.length) handleFiles(files);
                   (e.target as HTMLInputElement).value = '';
                 }}
-                hidden 
+                hidden
               />
             </label>
           </p>
@@ -231,13 +233,13 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
               {task.error && <p class="picha-error-text">{task.error}</p>}
             </div>
           ))}
-          
+
           <div class="picha-add-more">
             <p class="picha-upload-text">
               <label class="picha-upload-link">
                 Upload more files
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
                   multiple
                   onChange$={(e) => {
@@ -245,7 +247,7 @@ export const PichaUpload = component$((props: PichaUploadProps) => {
                     if (files.length) handleFiles(files);
                     (e.target as HTMLInputElement).value = '';
                   }}
-                  hidden 
+                  hidden
                 />
               </label>
             </p>

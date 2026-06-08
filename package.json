@@ -8,6 +8,12 @@
   "files": [
     "dist"
   ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -18,5 +24,10 @@
   },
   "dependencies": {
     "@pichaflow/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@builder.io/qwik": "^1.14.0",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.8"
   }
 }
