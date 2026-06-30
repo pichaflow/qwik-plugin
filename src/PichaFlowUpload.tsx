@@ -14,13 +14,16 @@ export interface PichaFlowUploadProps {
   onSuccessAll$?: (responses: UploadResponse[]) => void;
   onError$?: (error: any) => void;
   onProgress$?: (progress: number) => void;
+  allowDeletion?: boolean;
+  onDelete$?: (id: string) => void;
+  onDeleteError$?: (error: any) => void;
 }
 
 type UploadTask = {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'deleting' | 'deleted';
   error?: string;
   response?: UploadResponse;
 };
@@ -83,6 +86,28 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
     }
     .picha-status-text.success { color: #10b981; }
     .picha-status-text.error { color: #ef4444; }
+    .picha-status-text.deleting { color: #f59e0b; }
+    
+    .picha-delete-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .picha-delete-btn:hover:not(:disabled) {
+      color: #ef4444;
+      background: #fef2f2;
+    }
+    .picha-delete-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     
     .picha-progress-bar { background: #e2e8f0; height: 0.5rem; border-radius: 999px; overflow: hidden; }
     .picha-progress-fill { background: #3b82f6; height: 100%; transition: width 0.1s ease; }
@@ -182,6 +207,34 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
     }));
   });
 
+  const handleDelete = $(async (taskId: string, assetId: string) => {
+    const getTaskIndex = () => tasksStore.tasks.findIndex(t => t.id === taskId);
+    const index = getTaskIndex();
+    if (index === -1) return;
+    
+    tasksStore.tasks[index].status = 'deleting';
+
+    const client = new PichaFlowClient({
+      apiKey: props.apiKey,
+      baseUrl: props.baseUrl,
+      uploadUrl: props.uploadUrl,
+      fetchUrl: props.fetchUrl,
+      tenantId: props.tenantId
+    });
+
+    try {
+      await client.deleteAsset(assetId);
+      tasksStore.tasks = tasksStore.tasks.filter(t => t.id !== taskId);
+      props.onDelete$?.(assetId);
+    } catch (err: any) {
+      const errorIndex = getTaskIndex();
+      if (errorIndex !== -1) {
+        tasksStore.tasks[errorIndex].status = 'success';
+      }
+      props.onDeleteError$?.(err);
+    }
+  });
+
   return (
     <div
       class={`picha-upload-zone ${isDragging.value ? 'is-dragging' : ''} ${props.class || ''}`}
@@ -223,9 +276,21 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
             <div key={task.id} class="picha-task-item">
               <div class="picha-task-info">
                 <span class="picha-file-name">{task.file.name}</span>
-                <span class={`picha-status-text ${task.status}`}>
-                  {task.status === 'success' ? 'Uploaded' : task.status === 'error' ? 'Failed' : `${task.progress}%`}
-                </span>
+                <div class="picha-task-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span class={`picha-status-text ${task.status}`}>
+                    {task.status === 'success' ? 'Uploaded' : task.status === 'error' ? 'Failed' : task.status === 'deleting' ? 'Deleting...' : `${task.progress}%`}
+                  </span>
+                  {props.allowDeletion && (task.status === 'success' || task.status === 'deleting') && task.response?.id && (
+                    <button 
+                      onClick$={() => handleDelete(task.id, task.response!.id)}
+                      class="picha-delete-btn"
+                      title="Delete asset"
+                      disabled={task.status === 'deleting'}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                  )}
+                </div>
               </div>
               <div class="picha-progress-bar">
                 <div class={`picha-progress-fill ${task.status}`} style={{ width: `${task.progress}%` }}></div>
