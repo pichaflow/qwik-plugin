@@ -1,6 +1,6 @@
 {
   "name": "@pichaflow/qwik",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "PichaFlow SDK for Qwik - Edge-native media transformations.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

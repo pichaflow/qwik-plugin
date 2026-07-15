@@ -2,11 +2,13 @@ import { component$, useSignal, useStore, $, useStylesScoped$ } from '@builder.i
 import { PichaFlowClient, type UploadResponse, optimizeImageForUpload } from '@pichaflow/sdk';
 
 export interface PichaFlowUploadProps {
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string;
   uploadUrl?: string;
   fetchUrl?: string;
   tenantId?: string;
+  signatureUrl?: string;
+  customUploadEndpoint?: string;
   useSecure?: boolean;
   tags?: string[];
   class?: string;
@@ -152,21 +154,16 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
       baseUrl: props.baseUrl,
       uploadUrl: props.uploadUrl,
       fetchUrl: props.fetchUrl,
-      tenantId: props.tenantId
+      tenantId: props.tenantId,
+      signatureUrl: props.signatureUrl,
+      customUploadEndpoint: props.customUploadEndpoint
     });
-
-    const optimizedTasks = await Promise.all(
-      previewTasks.map(async (t) => {
-        const optimizedFile = await optimizeImageForUpload(t.file);
-        return { ...t, file: optimizedFile };
-      })
-    );
 
     let completedCount = 0;
     const successfulResponses: UploadResponse[] = [];
 
-    await Promise.all(optimizedTasks.map(async (rawTask) => {
-      const getTaskIndex = () => tasksStore.tasks.findIndex(t => t.id === rawTask.id);
+    await Promise.all(previewTasks.map(async (task) => {
+      const getTaskIndex = () => tasksStore.tasks.findIndex(t => t.id === task.id);
 
       const updateTask = (updates: Partial<UploadTask>) => {
         const index = getTaskIndex();
@@ -175,9 +172,10 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
         }
       };
 
-      updateTask({ status: 'uploading' });
-
       try {
+        const optimizedFile = await optimizeImageForUpload(task.file);
+        updateTask({ status: 'uploading', file: optimizedFile });
+
         const options = {
           tags: props.tags,
           onProgress: (p: number) => {
@@ -187,8 +185,8 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
         };
 
         const response = props.useSecure
-          ? await client.secureUpload(rawTask.file, options)
-          : await client.upload(rawTask.file, options);
+          ? await client.secureUpload(optimizedFile, options)
+          : await client.upload(optimizedFile, options);
 
         updateTask({ status: 'success', progress: 100, response });
         successfulResponses.push(response);
@@ -198,7 +196,7 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
         props.onError$?.(err);
       } finally {
         completedCount++;
-        if (completedCount === optimizedTasks.length) {
+        if (completedCount === previewTasks.length) {
           if (successfulResponses.length > 0) {
             props.onSuccessAll$?.(successfulResponses);
           }

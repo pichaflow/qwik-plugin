@@ -1,0 +1,14 @@
+# Changelog
+
+
+## 0.1.1
+
+### Added
+- Added `signatureUrl` and `customUploadEndpoint` support for proxying and token fetching to fix secret key exposure.
+
+### Fixed
+- Fixed 500 crashes swallowing CORS headers in upload-engine.
+
+## 0.1.0
+
+- Initial release
