@@ -1,6 +1,12 @@
 # Changelog
 
 
+
+## 0.1.3
+
+### Fixed
+- Fixed `customUploadEndpoint` prop not being passed to the SDK upload invocation.
+
 ## 0.1.1
 
 ### Added

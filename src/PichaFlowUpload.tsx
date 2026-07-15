@@ -178,6 +178,7 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
 
         const options = {
           tags: props.tags,
+          customUploadEndpoint: props.customUploadEndpoint,
           onProgress: (p: number) => {
             updateTask({ progress: p });
             props.onProgress$?.(p);
