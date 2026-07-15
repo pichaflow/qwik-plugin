@@ -2,6 +2,12 @@
 
 
 
+
+## 0.1.4
+
+### Fixed
+- Rebuilt SDK to ensure `customUploadEndpoint` fix is included in the dist bundle.
+
 ## 0.1.3
 
 ### Fixed
