@@ -11,6 +11,7 @@ export interface PichaFlowUploadProps {
   customUploadEndpoint?: string;
   useSecure?: boolean;
   tags?: string[];
+  directory?: string;
   class?: string;
   onSuccess$?: (response: UploadResponse) => void;
   onSuccessAll$?: (responses: UploadResponse[]) => void;
@@ -19,11 +20,13 @@ export interface PichaFlowUploadProps {
   allowDeletion?: boolean;
   onDelete$?: (id: string) => void;
   onDeleteError$?: (error: any) => void;
+  multiple?: boolean;
 }
 
 type UploadTask = {
   id: string;
   file: File;
+  previewUrl: string;
   progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error' | 'deleting' | 'deleted';
   error?: string;
@@ -34,66 +37,165 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
   const isDragging = useSignal(false);
   const tasksStore = useStore<{ tasks: UploadTask[] }>({ tasks: [] }, { deep: true });
   const inputRef = useSignal<HTMLInputElement>();
+  
+  const multiple = props.multiple !== false;
+  const allowDeletion = props.allowDeletion !== false;
 
   useStylesScoped$(`
+    .picha-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      font-family: inherit;
+      width: 100%;
+    }
     .picha-upload-zone {
-      border: 2px dashed #e2e8f0;
+      border: 1px dashed #e4e4e7;
       border-radius: 0.75rem;
-      padding: 2rem;
+      padding: 2.5rem 2rem;
       transition: all 0.2s ease;
-      background: #f8fafc;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .picha-upload-zone:hover {
+      border-color: #a1a1aa;
     }
     .picha-upload-zone.is-dragging {
       border-color: #3b82f6;
       background: #eff6ff;
     }
-    .picha-upload-content {
+    .picha-upload-circle {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: #f4f4f5;
+      border: 1px solid #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+    .picha-upload-icon {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: #71717a;
+    }
+    .picha-upload-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #09090b;
+      margin: 0 0 0.25rem 0;
+    }
+    .picha-upload-description {
+      font-size: 0.75rem;
+      color: #71717a;
+      margin: 0;
       text-align: center;
     }
-    .picha-upload-icon { width: 2rem; height: 2rem; color: #94a3b8; margin: 0 auto 1rem; display: block; }
-    .picha-upload-text { color: #64748b; font-size: 0.875rem; margin: 0; }
-    .picha-upload-link { color: #3b82f6; font-weight: 600; cursor: pointer; }
+    .picha-upload-link {
+      color: #00a3ff;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .picha-upload-remove-current {
+      font-size: 0.75rem;
+      color: #ef4444;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      background: none;
+      border: none;
+      padding: 0;
+    }
     
     .picha-uploading-list {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.5rem;
     }
     .picha-task-item {
-      background: white;
-      padding: 1rem;
+      background: #ffffff;
+      padding: 0.75rem;
       border-radius: 0.5rem;
-      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      border: 1px solid #f1f5f9;
-    }
-    .picha-task-info {
+      border: 1px solid #e4e4e7;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.5rem;
+      gap: 0.75rem;
+      position: relative;
+    }
+    .picha-task-thumbnail-container {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.375rem;
+      overflow: hidden;
+      background: #f4f4f5;
+      border: 1px solid #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .picha-task-thumbnail {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: all 0.2s ease;
+    }
+    .picha-task-thumbnail.greyed {
+      filter: grayscale(100%);
+      opacity: 0.5;
+    }
+    .picha-task-details {
+      flex-grow: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
     }
     .picha-file-name {
       font-size: 0.875rem;
       font-weight: 500;
-      color: #334155;
+      color: #09090b;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 70%;
     }
-    .picha-status-text {
+    .picha-file-size {
       font-size: 0.75rem;
-      font-weight: 600;
-      color: #64748b;
+      color: #71717a;
     }
-    .picha-status-text.success { color: #10b981; }
-    .picha-status-text.error { color: #ef4444; }
-    .picha-status-text.deleting { color: #f59e0b; }
-    
+    .picha-progress-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .picha-progress-bar {
+      flex-grow: 1;
+      background: #e4e4e7;
+      height: 0.25rem;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .picha-progress-fill {
+      background: #09090b;
+      height: 100%;
+      transition: width 0.1s ease;
+    }
+    .picha-progress-percent {
+      font-size: 0.75rem;
+      color: #71717a;
+      flex-shrink: 0;
+    }
     .picha-delete-btn {
       background: none;
       border: none;
-      color: #94a3b8;
+      color: #71717a;
       cursor: pointer;
       padding: 0.25rem;
       border-radius: 0.25rem;
@@ -104,30 +206,91 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
     }
     .picha-delete-btn:hover:not(:disabled) {
       color: #ef4444;
-      background: #fef2f2;
+      background: #f4f4f5;
     }
     .picha-delete-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    
-    .picha-progress-bar { background: #e2e8f0; height: 0.5rem; border-radius: 999px; overflow: hidden; }
-    .picha-progress-fill { background: #3b82f6; height: 100%; transition: width 0.1s ease; }
-    .picha-progress-fill.success { background: #10b981; }
-    .picha-progress-fill.error { background: #ef4444; }
-    
+    .picha-remove-all-btn {
+      align-self: flex-start;
+      background: none;
+      border: 1px solid #e4e4e7;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 0.375rem;
+      color: #09090b;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+    }
+    .picha-remove-all-btn:hover {
+      background: #f4f4f5;
+    }
     .picha-error-text {
-      margin-top: 0.25rem;
+      margin: 0;
       font-size: 0.75rem;
       color: #ef4444;
     }
-    .picha-add-more { text-align: center; margin-top: 1.5rem; }
 
     @media (prefers-color-scheme: dark) {
-      .picha-upload-zone { background: #0f172a; border-color: #1e293b; }
-      .picha-task-item { background: #1e293b; border-color: #334155; }
-      .picha-file-name { color: #f8fafc; }
-      .picha-progress-bar { background: #334155; }
+      .picha-upload-zone {
+        background: #0c0c0e;
+        border-color: #27272a;
+      }
+      .picha-upload-zone:hover {
+        border-color: #71717a;
+      }
+      .picha-upload-circle {
+        background: #18181b;
+        border-color: #27272a;
+      }
+      .picha-upload-icon {
+        color: #a1a1aa;
+      }
+      .picha-upload-title {
+        color: #ffffff;
+      }
+      .picha-upload-description {
+        color: #a1a1aa;
+      }
+      .picha-task-item {
+        background: #0f0f11;
+        border-color: #27272a;
+      }
+      .picha-task-thumbnail-container {
+        background: #18181b;
+        border-color: #27272a;
+      }
+      .picha-file-name {
+        color: #ffffff;
+      }
+      .picha-file-size {
+        color: #a1a1aa;
+      }
+      .picha-progress-bar {
+        background: #27272a;
+      }
+      .picha-progress-fill {
+        background: #ffffff;
+      }
+      .picha-progress-percent {
+        color: #a1a1aa;
+      }
+      .picha-delete-btn {
+        color: #a1a1aa;
+      }
+      .picha-delete-btn:hover:not(:disabled) {
+        background: #18181b;
+      }
+      .picha-remove-all-btn {
+        border-color: #27272a;
+        color: #ffffff;
+      }
+      .picha-remove-all-btn:hover {
+        background: #18181b;
+      }
     }
   `);
 
@@ -140,14 +303,7 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
       return;
     }
 
-    const previewTasks: UploadTask[] = imageFiles.map(file => ({
-      id: crypto.randomUUID(),
-      file,
-      progress: 0,
-      status: 'pending' as const
-    }));
-
-    tasksStore.tasks.push(...previewTasks);
+    const filesToUpload = multiple ? imageFiles : [imageFiles[0]];
 
     const client = new PichaFlowClient({
       apiKey: props.apiKey,
@@ -158,6 +314,30 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
       signatureUrl: props.signatureUrl,
       customUploadEndpoint: props.customUploadEndpoint
     });
+
+    if (!multiple) {
+      // Clear/delete existing tasks
+      tasksStore.tasks.forEach(t => {
+        if (t.response?.id && allowDeletion) {
+          client.deleteAsset(t.response.id).catch(() => {});
+        }
+      });
+      tasksStore.tasks = [];
+    }
+
+    const previewTasks: UploadTask[] = imageFiles.map(file => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      progress: 0,
+      status: 'pending' as const
+    }));
+
+    if (multiple) {
+      tasksStore.tasks.push(...previewTasks);
+    } else {
+      tasksStore.tasks = previewTasks;
+    }
 
     let completedCount = 0;
     const successfulResponses: UploadResponse[] = [];
@@ -178,6 +358,8 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
 
         const options = {
           tags: props.tags,
+          directory: props.directory,
+          signatureUrl: props.signatureUrl,
           customUploadEndpoint: props.customUploadEndpoint,
           onProgress: (p: number) => {
             updateTask({ progress: p });
@@ -207,6 +389,10 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
   });
 
   const handleDelete = $(async (taskId: string, assetId: string) => {
+    if (!window.confirm('Are you sure you want to delete this file?')) {
+      return;
+    }
+
     const getTaskIndex = () => tasksStore.tasks.findIndex(t => t.id === taskId);
     const index = getTaskIndex();
     if (index === -1) return;
@@ -234,88 +420,163 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
     }
   });
 
+  const handleRemoveAll = $(async () => {
+    if (!window.confirm('Are you sure you want to remove all files?')) {
+      return;
+    }
+    const uploadedTasks = tasksStore.tasks.filter(t => t.response?.id);
+    tasksStore.tasks = [];
+    if (allowDeletion) {
+      const client = new PichaFlowClient({
+        apiKey: props.apiKey,
+        baseUrl: props.baseUrl,
+        uploadUrl: props.uploadUrl,
+        fetchUrl: props.fetchUrl,
+        tenantId: props.tenantId
+      });
+      await Promise.all(uploadedTasks.map(t => client.deleteAsset(t.response!.id).catch(() => {})));
+    }
+  });
+
+  const handleClearSingle = $(async () => {
+    if (tasksStore.tasks.length > 0) {
+      const task = tasksStore.tasks[0];
+      if (task.response?.id && allowDeletion) {
+        if (!window.confirm('Are you sure you want to delete this file?')) {
+          return;
+        }
+        const client = new PichaFlowClient({
+          apiKey: props.apiKey,
+          baseUrl: props.baseUrl,
+          uploadUrl: props.uploadUrl,
+          fetchUrl: props.fetchUrl,
+          tenantId: props.tenantId
+        });
+        client.deleteAsset(task.response.id).catch(() => {});
+      }
+      tasksStore.tasks = [];
+    }
+  });
+
+  const formatSize = $((bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = 2;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  });
+
   return (
-    <div
-      class={`picha-upload-zone ${isDragging.value ? 'is-dragging' : ''} ${props.class || ''}`}
-      preventdefault:dragover
-      preventdefault:dragleave
-      preventdefault:drop
-      onDragOver$={() => isDragging.value = true}
-      onDragLeave$={() => isDragging.value = false}
-      onDrop$={(e) => {
-        isDragging.value = false;
-        const files = Array.from(e.dataTransfer?.files || []) as File[];
-        if (files.length) handleFiles(files);
-      }}
-    >
-      {tasksStore.tasks.length === 0 ? (
-        <div class="picha-upload-content">
+    <div class={`picha-container ${props.class || ''}`}>
+      <div
+        class={`picha-upload-zone ${isDragging.value ? 'is-dragging' : ''}`}
+        preventdefault:dragover
+        preventdefault:dragleave
+        preventdefault:drop
+        onDragOver$={() => isDragging.value = true}
+        onDragLeave$={() => isDragging.value = false}
+        onDrop$={(e) => {
+          isDragging.value = false;
+          const files = Array.from(e.dataTransfer?.files || []) as File[];
+          if (files.length) handleFiles(files);
+        }}
+        onClick$={() => inputRef.value?.click()}
+      >
+        <div class="picha-upload-circle">
           <svg class="picha-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-          <p class="picha-upload-text">
-            Drag & drop or <label class="picha-upload-link">
-              browse
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                ref={inputRef}
-                onChange$={(e) => {
-                  const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
-                  if (files.length) handleFiles(files);
-                  (e.target as HTMLInputElement).value = '';
-                }}
-                hidden
-              />
-            </label>
-          </p>
         </div>
-      ) : (
+        <p class="picha-upload-title">
+          {multiple ? 'Upload files' : 'Upload file'}
+        </p>
+        <p class="picha-upload-description">
+          Drag & drop or <span class="picha-upload-link">browse</span>
+        </p>
+        <input
+          type="file"
+          accept="image/*"
+          multiple={multiple}
+          ref={inputRef}
+          onChange$={(e) => {
+            const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
+            if (files.length) handleFiles(files);
+            (e.target as HTMLInputElement).value = '';
+          }}
+          hidden
+        />
+        {!multiple && tasksStore.tasks.length > 0 && (
+          <button
+            type="button"
+            class="picha-upload-remove-current"
+            onClick$={(e) => {
+              e.stopPropagation();
+              handleClearSingle();
+            }}
+          >
+            Remove the current file to upload a new one.
+          </button>
+        )}
+      </div>
+
+      {tasksStore.tasks.length > 0 && (
         <div class="picha-uploading-list">
           {tasksStore.tasks.map(task => (
             <div key={task.id} class="picha-task-item">
-              <div class="picha-task-info">
-                <span class="picha-file-name">{task.file.name}</span>
-                <div class="picha-task-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span class={`picha-status-text ${task.status}`}>
-                    {task.status === 'success' ? 'Uploaded' : task.status === 'error' ? 'Failed' : task.status === 'deleting' ? 'Deleting...' : `${task.progress}%`}
-                  </span>
-                  {props.allowDeletion && (task.status === 'success' || task.status === 'deleting') && task.response?.id && (
-                    <button 
-                      onClick$={() => handleDelete(task.id, task.response!.id)}
-                      class="picha-delete-btn"
-                      title="Delete asset"
-                      disabled={task.status === 'deleting'}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    </button>
-                  )}
-                </div>
+              <div class="picha-task-thumbnail-container">
+                <img
+                  src={task.previewUrl}
+                  alt={task.file.name}
+                  class={`picha-task-thumbnail ${task.status !== 'success' ? 'greyed' : ''}`}
+                />
               </div>
-              <div class="picha-progress-bar">
-                <div class={`picha-progress-fill ${task.status}`} style={{ width: `${task.progress}%` }}></div>
+              <div class="picha-task-details">
+                <span class="picha-file-name" title={task.file.name}>{task.file.name}</span>
+                <span class="picha-file-size">{formatSize(task.file.size)}</span>
+                
+                {task.status !== 'success' && task.status !== 'error' && (
+                  <div class="picha-progress-container">
+                    <div class="picha-progress-bar">
+                      <div class="picha-progress-fill" style={{ width: `${task.progress}%` }}></div>
+                    </div>
+                    <span class="picha-progress-percent">{task.progress}%</span>
+                  </div>
+                )}
+
+                {task.error && <p class="picha-error-text">{task.error}</p>}
               </div>
-              {task.error && <p class="picha-error-text">{task.error}</p>}
+              
+              <div class="picha-task-right">
+                {allowDeletion && (
+                  <button
+                    type="button"
+                    onClick$={(e) => {
+                      e.stopPropagation();
+                      if (task.response?.id) {
+                        handleDelete(task.id, task.response.id);
+                      } else {
+                        tasksStore.tasks = tasksStore.tasks.filter(t => t.id !== task.id);
+                      }
+                    }}
+                    class="picha-delete-btn"
+                    title="Remove file"
+                    disabled={task.status === 'deleting'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+                )}
+              </div>
             </div>
           ))}
 
-          <div class="picha-add-more">
-            <p class="picha-upload-text">
-              <label class="picha-upload-link">
-                Upload more files
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange$={(e) => {
-                    const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
-                    if (files.length) handleFiles(files);
-                    (e.target as HTMLInputElement).value = '';
-                  }}
-                  hidden
-                />
-              </label>
-            </p>
-          </div>
+          {multiple && tasksStore.tasks.length > 0 && (
+            <button
+              type="button"
+              class="picha-remove-all-btn"
+              onClick$={handleRemoveAll}
+            >
+              Remove all files
+            </button>
+          )}
         </div>
       )}
     </div>

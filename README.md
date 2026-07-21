@@ -115,6 +115,7 @@ This happens instantly in the browser *before* the network request begins, ensur
 | `signatureUrl` | `string` | If `useSecure` | The endpoint on your backend that signs the upload request. |
 | `customUploadEndpoint`| `string` | No | A complete URL to a proxy endpoint for upload, bypassing the PichaFlow Edge Engine completely. |
 | `tags` | `string[]` | No | Default `[]`. Array of string tags to append to the uploaded asset metadata for easier searching in the dashboard. |
+| `directory` | `string` | No | Optional target folder path (e.g. `avatars/user-123`) to store uploaded assets. |
 
 ## Callback Props (QRLs)
 
