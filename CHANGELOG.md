@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6
+
+### Added
+- Exposed package `exports` mapping for `./style.css` stylesheet path.
+
 ## 0.1.5
 
 ### Improved
