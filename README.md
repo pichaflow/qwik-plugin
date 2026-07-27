@@ -43,7 +43,6 @@ export default component$(() => {
       <h2>Upload your Avatar</h2>
       
       <PichaFlowUpload
-        apiKey="pk_live_your_public_key"
         useSecure={true}
         signatureUrl="/api/sign-upload"
         tags={['ugc', 'avatar']}
@@ -117,7 +116,7 @@ This happens instantly in the browser *before* the network request begins, ensur
 
 | Prop | Type | Required | Description |
 | --- | --- | --- | --- |
-| `apiKey` | `string` | No | Your PichaFlow Public Key (`pk_live_...`). Optional if using a `signatureUrl` proxy that returns credentials. |
+| `apiKey` | `string` | No | Your PichaFlow Secret Key (`sk_live_...`). Note: Exposing your secret key on the frontend is insecure; use `signatureUrl` instead. |
 | `useSecure` | `boolean` | No | Default `false`. Enable the HMAC-SHA256 handshake flow for secure browser uploads. |
 | `signatureUrl` | `string` | If `useSecure` | The endpoint on your backend that signs the upload request. |
 | `customUploadEndpoint`| `string` | No | A complete URL to a proxy endpoint for upload, bypassing the PichaFlow Edge Engine completely. |

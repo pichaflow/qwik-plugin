@@ -1,6 +1,6 @@
 {
   "name": "@pichaflow/qwik",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "PichaFlow SDK for Qwik - Edge-native media transformations.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -11,8 +11,7 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
       "default": "./dist/index.mjs"
-    },
-    "./style.css": "./dist/index.css"
+    }
   },
   "publishConfig": {
     "exports": {
@@ -21,8 +20,7 @@
         "import": "./dist/index.mjs",
         "require": "./dist/index.js",
         "default": "./dist/index.mjs"
-      },
-      "./style.css": "./dist/index.css"
+      }
     }
   },
   "files": [
@@ -43,7 +41,7 @@
     "@builder.io/qwik": ">=1"
   },
   "dependencies": {
-    "@pichaflow/sdk": "workspace:^0.2.0"
+    "@pichaflow/sdk": "workspace:^0.2.1"
   },
   "devDependencies": {
     "@builder.io/qwik": "^1.14.0",

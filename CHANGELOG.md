@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2
+
+### Fixed
+- Removed deprecated public key references from documentation and component prop tables.
+
+## 0.2.1
+
+### Fixed
+- Fixed Qwik compiler warnings for the upload drag-and-drop zone by adding appropriate ARIA roles (`role="button"`), `tabIndex="0"`, and keyboard handlers (`onKeyDown$`).
+- Removed stale `./style.css` mapping from package exports since CSS is injected by JS at runtime (`vite-plugin-css-injected-by-js`). This resolves module resolution errors in SSR and bundler environments.
+
 ## 0.2.0
 
 ### Changed (Breaking Changes)

@@ -470,6 +470,8 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
   return (
     <div class={`picha-container ${props.class || ''}`}>
       <div
+        role="button"
+        tabIndex={0}
         class={`picha-upload-zone ${isDragging.value ? 'is-dragging' : ''}`}
         preventdefault:dragover
         preventdefault:dragleave
@@ -482,6 +484,12 @@ export const PichaFlowUpload = component$((props: PichaFlowUploadProps) => {
           if (files.length) handleFiles(files);
         }}
         onClick$={() => inputRef.value?.click()}
+        onKeyDown$={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.value?.click();
+          }
+        }}
       >
         <div class="picha-upload-circle">
           <svg class="picha-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
