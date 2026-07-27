@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+### Changed (Breaking Changes)
+- **Secure Handshake Hardening (Gap 1)**: The client now automatically extracts the post-optimized file size, MIME type, and target directory, transmitting them as headers (`x-picha-max-size`, `x-picha-allowed-types`, `x-picha-directory`) during signing and upload requests to prevent parameter tampering and directory hijacking.
+
 ## 0.1.6
 
 ### Added

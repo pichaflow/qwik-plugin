@@ -1,6 +1,6 @@
 {
   "name": "@pichaflow/qwik",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "PichaFlow SDK for Qwik - Edge-native media transformations.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -43,7 +43,7 @@
     "@builder.io/qwik": ">=1"
   },
   "dependencies": {
-    "@pichaflow/sdk": "workspace:*"
+    "@pichaflow/sdk": "workspace:^0.2.0"
   },
   "devDependencies": {
     "@builder.io/qwik": "^1.14.0",
